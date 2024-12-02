@@ -1,47 +1,60 @@
 module Main where
 
-import Data.Functor ((<&>))
-import Data.List.Extra (takeEnd)
-import Data.Tuple.Extra (both, dupe, (&&&), (***))
+import Data.List.Extra (tails)
+import Data.Tuple.Extra ((&&&))
 import Flow
 
-isIncreasingOrDecresing, isIncreasingBy1to3, isSafe :: [Int] -> Bool
+isSafe :: [Int] -> Bool
 isSafe =
   (isIncreasingOrDecresing &&& isIncreasingBy1to3)
     .> uncurry (&&)
+
+isIncreasingOrDecresing :: [Int] -> Bool
 isIncreasingOrDecresing =
   slidingBy 2
-    .> (map (\[a, b] -> a < b) &&& map (\[a, b] -> a > b))
-    .> both and
+    .> map vec2ToTuple
+    .> (all (uncurry (<)) &&& all (uncurry (>)))
     .> uncurry (||)
+
+isIncreasingBy1to3 :: [Int] -> Bool
 isIncreasingBy1to3 =
   slidingBy 2
-    .> map (\[a, b] -> dist a b)
-    .> all (`elem` [1, 2, 3])
+    .> all
+      ( vec2ToTuple
+          .> uncurry dist
+          .> (`elem` [1, 2, 3])
+      )
 
 slidingBy :: Int -> [a] -> [[a]]
-slidingBy n xs
-  | length xs < n = []
-  | otherwise = take n xs : slidingBy n (tail xs)
+slidingBy n =
+  tails
+    .> map (take n)
+    .> filter (length .> (== n))
 
 dist :: Int -> Int -> Int
 dist a b = abs $ a - b
 
+dist' = (abs .) . (-)
+dist'' = (-) .> (.> abs)
+
 parseInput :: String -> [[Int]]
-parseInput str =
-  lines str
-    <&> words
-      .> map (read @Int)
+parseInput =
+  lines
+    .> map (words .> map read)
 
-drop1At n xs
-  | n >= length xs = xs
-  | otherwise = take n xs <> takeEnd (length xs - n - 1) xs
+drop1At :: Int -> [a] -> [a]
+drop1At n xs =
+  let (l, _ : r) = splitAt n xs
+   in l <> r
 
-dropUnsafe = aux 0
- where
-  aux n xs
-    | n > length xs = []
-    | otherwise = drop1At n xs : aux (n + 1) xs
+dropUnsafe :: [a] -> [[a]]
+dropUnsafe xs =
+  [ drop1At i xs
+  | i <- [0 .. length xs - 1]
+  ]
+
+vec2ToTuple :: [b] -> (b, b)
+vec2ToTuple [a, b] = (a, b)
 
 part1 =
   parseInput
