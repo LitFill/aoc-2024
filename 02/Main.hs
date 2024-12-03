@@ -5,9 +5,8 @@ import Data.Tuple.Extra ((&&&))
 import Flow
 
 isSafe :: [Int] -> Bool
-isSafe =
-  (isIncreasingOrDecresing &&& isIncreasingBy1to3)
-    .> uncurry (&&)
+isSafe xs =
+  isIncreasingOrDecresing xs && isIncreasingBy1to3 xs
 
 isIncreasingOrDecresing :: [Int] -> Bool
 isIncreasingOrDecresing =
