@@ -7,12 +7,15 @@ import Data.Map.Strict qualified as Map
 import Data.Tuple.Extra (both, second)
 import Flow
 
+vec2ToTuple :: [b] -> (b, b)
+vec2ToTuple [a, b] = (a, b)
+
 parseInput :: String -> [(Int, Int)]
 parseInput str =
   lines str
     <&> words
-      .> (\[a, b] -> (a, b))
-      .> both (read @Int)
+      .> vec2ToTuple
+      .> both read
 
 part1 :: String -> Int
 part1 =
