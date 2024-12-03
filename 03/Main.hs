@@ -11,6 +11,7 @@ parseInput regex =
   (=~ regex)
     .> getAllTextMatches
 
+regex1, regex2 :: String
 regex1 = "mul\\([0-9]+,[0-9]+\\)"
 regex2 = "mul\\([0-9]+,[0-9]+\\)|do\\(\\)|don't\\(\\)"
 
