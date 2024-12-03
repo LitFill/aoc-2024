@@ -3,46 +3,62 @@
 set -euxo pipefail
 
 YEAR=2024
-SESSION_FILE=.session
+SESSION_FILE=".session"
 
-if [ -z "$1" ]; then
-	echo "Must provide a day of the month as the first argument."
+# Fungsi untuk memeriksa file/direktori
+ensure_file() {
+	local file_path="$1"
+	local default_content="$2"
+
+	if [ -f "$file_path" ]; then
+		echo "File '$file_path' sudah ada, melewati..."
+	else
+		echo "Membuat file '$file_path'..."
+		echo -n "$default_content" >"$file_path"
+	fi
+}
+
+ensure_directory() {
+	local dir_path="$1"
+	if [ -d "$dir_path" ]; then
+		echo "Direktori '$dir_path' sudah ada, melewati..."
+	else
+		echo "Membuat direktori '$dir_path'..."
+		mkdir -p "$dir_path"
+	fi
+}
+
+# Validasi argumen hari
+if [ -z "${1:-}" ]; then
+	echo "Harus menyertakan hari dalam argumen pertama."
 	exit 1
 fi
 
-DAY=$(echo "$1" | bc)
+DAY=$(printf "%d" "$1")
 if [[ $DAY -lt 1 || $DAY -gt 25 ]]; then
-	echo "The day must be between 1 and 25, inclusive."
+	echo "Hari harus antara 1 hingga 25, inklusif."
 	exit 1
 fi
 
+# Validasi file sesi
 if [ ! -f "$SESSION_FILE" ]; then
-	echo "File '$SESSION_FILE' with the user's session key from the Advent of" \
-		"Code website does not exist."
+	echo "File '$SESSION_FILE' tidak ditemukan."
 	exit 1
 fi
 
-SESSION="$(cat "$SESSION_FILE")"
+SESSION=$(<"$SESSION_FILE")
 if [ -z "$SESSION" ]; then
-	echo "Must set the session from the Advent of Code website."
+	echo "Sesi tidak valid, pastikan sudah diatur dari Advent of Code."
 	exit 1
 fi
 
-DAY_DIR="$DAY"
-if [[ $DAY -ge 1 && $DAY -le 9 ]]; then
-	DAY_DIR=0$DAY
-fi
+# Tentukan nama direktori
+DAY_DIR=$(printf "%02d" "$DAY")
+ensure_directory "$DAY_DIR"
 
-if [[ -d $DAY_DIR ]]; then
-	echo "direktori untuk hari $DAY sudah ada, melewatinya..."
-else
-	mkdir -p $DAY_DIR
-fi
-
+# Buat modul utama jika belum ada
 DIR_MODULE="$DAY_DIR/Main.hs"
-if [ -f "$DIR_MODULE" ]; then
-	echo "'$DIR_MODULE' already exists, skipping..."
-else
+if [ ! -f "$DIR_MODULE" ]; then
 	cat <<-EOF >"$DIR_MODULE"
 		module Main where
 
@@ -62,22 +78,25 @@ else
 		  putStr "Part 2: "
 		  print <| part2 input
 	EOF
+else
+	echo "Modul utama '$DIR_MODULE' sudah ada, melewati..."
 fi
 
+# Unduh input data jika belum ada
 INPUT_FILE="$DAY_DIR/input.txt"
-if [ -f "$INPUT_FILE" ]; then
-	echo "File input untuk hari $DAY sudah ada, melewati..."
+if [ ! -f "$INPUT_FILE" ]; then
+	echo "Mengunduh input untuk hari $DAY ke '$INPUT_FILE'..."
+	curl -fsSL --max-time 10 -b "session=$SESSION" \
+		"https://adventofcode.com/$YEAR/day/$DAY/input" >"$INPUT_FILE" || {
+		echo "Gagal mengunduh input, pastikan sesi dan koneksi benar."
+		exit 1
+	}
 else
-	echo "Downloading input data for day $DAY to '$INPUT_FILE'..."
-	curl "https://adventofcode.com/$YEAR/day/$DAY/input" -s -m 10 \
-		-b "session=$SESSION" >"$INPUT_FILE"
+	echo "File input '$INPUT_FILE' sudah ada, melewati..."
 fi
 
-SAMPLE_FILE="$DAY_DIR/samle.txt"
-if [ -f "$SAMPLE_FILE" ]; then
-	echo "File sample untuk hari $DAY sudah ada, melewati..."
-else
-	touch "$SAMPLE_FILE"
-fi
+# Buat file sample jika belum ada
+SAMPLE_FILE="$DAY_DIR/sample.txt"
+ensure_file "$SAMPLE_FILE" ""
 
-echo "selamat memulai!"
+echo "Persiapan untuk hari $DAY selesai! Selamat memulai!"
