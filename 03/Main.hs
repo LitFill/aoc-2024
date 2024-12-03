@@ -1,6 +1,6 @@
 module Main where
 
-import Data.List.Extra (drop1, stripPrefix)
+import Data.List.Extra (drop1, repeatedly, stripPrefix)
 import Data.Tuple.Extra ((&&&))
 import Flow
 import Text.Read (readMaybe)
@@ -21,17 +21,12 @@ parseMult =
     .> maybe Nothing readMaybe
     .> maybe 0 (uncurry (*))
 
+select :: [String] -> ([String], [String])
 select =
   takeWhile (/= "don't()")
     &&& dropWhile (/= "don't()")
     .> dropWhile (/= "do()")
     .> drop1
-
-repeatedly :: ([a] -> ([b], [a])) -> [a] -> [b]
-repeatedly f [] = []
-repeatedly f as = b <> repeatedly f as'
- where
-  (b, as') = f as
 
 part1 :: String -> Int
 part1 =
@@ -43,6 +38,7 @@ part2 :: String -> Int
 part2 =
   parseInput regex2
     .> repeatedly select
+    .> concat
     .> map parseMult
     .> sum
 
